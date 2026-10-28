@@ -1,0 +1,36 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+backend-python/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Angular and Node
+frontend-angular/node_modules/
+frontend-angular/dist/
+.angular/
+npm-debug.log*
+
+# Java
+backend-java/target/
+*.class
+
+# Runtime files
+uploads/
+temp/
+*.log
+
+# Private documents
+sample-documents/private/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
