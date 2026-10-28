@@ -61,17 +61,80 @@ def _ocr_image(image: Image.Image) -> str:
         ImageOps.grayscale(image)
     )
 
+    # Ampliar imágenes pequeñas conservando proporciones.
+    if prepared_image.width < 1600:
+        scale = 1600 / prepared_image.width
+
+        prepared_image = prepared_image.resize(
+            (
+                int(prepared_image.width * scale),
+                int(prepared_image.height * scale),
+            ),
+            Image.Resampling.LANCZOS,
+        )
+
     try:
-        return pytesseract.image_to_string(
+        data = pytesseract.image_to_data(
             prepared_image,
             lang=language,
-            config="--oem 1 --psm 6",
-        ).strip()
+            config="--oem 1 --psm 11",
+            output_type=pytesseract.Output.DICT,
+        )
+
+        accepted_tokens: list[str] = []
+
+        for token, raw_confidence in zip(
+            data["text"],
+            data["conf"],
+            strict=True,
+        ):
+            token = token.strip()
+            confidence = float(raw_confidence)
+
+            if not token or confidence < 35:
+                continue
+
+            alphanumeric_count = sum(
+                character.isalnum()
+                for character in token
+            )
+
+            if alphanumeric_count < max(1, len(token) // 3):
+                continue
+
+            accepted_tokens.append(token)
+
+        return " ".join(accepted_tokens)
 
     except pytesseract.TesseractError as exc:
         raise DocumentProcessingError(
             f"The OCR engine failed with exit code {exc.status}."
         ) from exc
+
+def _ocr_embedded_images(
+    document: fitz.Document,
+    page: fitz.Page,
+) -> str:
+    extracted_parts: list[str] = []
+
+    for image_info in page.get_images(full=True):
+        xref = image_info[0]
+        width = image_info[2]
+        height = image_info[3]
+
+        # Ignorar iconos o imágenes demasiado pequeñas.
+        if width * height < 150_000:
+            continue
+
+        image_data = document.extract_image(xref)
+
+        with Image.open(BytesIO(image_data["image"])) as image:
+            text = _ocr_image(image)
+
+        if text:
+            extracted_parts.append(text)
+
+    return "\n".join(extracted_parts)
 
 def extract_text_from_pdf(content: bytes) -> TextExtractionResult:
     try:
@@ -86,8 +149,15 @@ def extract_text_from_pdf(content: bytes) -> TextExtractionResult:
                     native_parts.append(native_text)
                     continue
 
+                embedded_text = _ocr_embedded_images(document, page)
+
+                if embedded_text:
+                    ocr_parts.append(embedded_text)
+                    continue
+
                 pixmap = page.get_pixmap(
-                    matrix=fitz.Matrix(2.5, 2.5),
+                    # matrix=fitz.Matrix(2.5, 2.5), init point size for better OCR accuracy
+                    matrix=fitz.Matrix(4.0, 4.0),
                     alpha=False,
                 )
 

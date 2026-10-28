@@ -1,5 +1,5 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
-
+from app.classification.document_classifier import classify_document
 from app.core.config import ALLOWED_CONTENT_TYPES, MAX_UPLOAD_SIZE
 from app.extraction.text_extractor import (
     DocumentProcessingError,
@@ -56,6 +56,8 @@ async def inspect_document(
             detail=str(exc),
         ) from exc
 
+    classification = classify_document(extraction.text)
+
     return DocumentInspectionResponse(
         filename=file.filename or "unnamed-document",
         content_type=content_type,
@@ -64,4 +66,5 @@ async def inspect_document(
         extraction_method=extraction.method,
         text_preview=extraction.text[:500],
         warnings=extraction.warnings,
+        classification=classification,
     )
