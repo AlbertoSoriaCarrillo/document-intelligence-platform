@@ -7,6 +7,9 @@ from app.extraction.text_extractor import (
     extract_text_from_pdf,
 )
 from app.models.document import DocumentInspectionResponse
+from app.extraction.structured_extractor import (
+    extract_structured_fields,
+)
 
 
 router = APIRouter(
@@ -58,6 +61,11 @@ async def inspect_document(
 
     classification = classify_document(extraction.text)
 
+    extracted_fields = extract_structured_fields(
+        classification.document_type,
+        extraction.text,
+    )
+
     return DocumentInspectionResponse(
         filename=file.filename or "unnamed-document",
         content_type=content_type,
@@ -67,4 +75,5 @@ async def inspect_document(
         text_preview=extraction.text[:500],
         warnings=extraction.warnings,
         classification=classification,
+        extracted_fields=extracted_fields,
     )

@@ -16,11 +16,22 @@ class ClassificationStatus(StrEnum):
     UNKNOWN = "unknown"
 
 
+class FieldStatus(StrEnum):
+    FOUND = "found"
+    DOUBTFUL = "doubtful"
+    MISSING = "missing"
+
+
 class DocumentClassification(BaseModel):
     document_type: DocumentType
     status: ClassificationStatus
     score: int
     evidence: list[str]
+
+
+class ExtractedField(BaseModel):
+    value: str | None
+    status: FieldStatus
 
 
 class DocumentInspectionResponse(BaseModel):
@@ -30,5 +41,6 @@ class DocumentInspectionResponse(BaseModel):
     character_count: int
     extraction_method: str
     classification: DocumentClassification
+    extracted_fields: dict[str, ExtractedField]
     text_preview: str
     warnings: list[str]
