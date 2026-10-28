@@ -5,6 +5,7 @@
 
 # Python
 backend-python/.venv/
+backend-python/resources/tessdata/*.traineddata
 __pycache__/
 *.py[cod]
 .pytest_cache/
