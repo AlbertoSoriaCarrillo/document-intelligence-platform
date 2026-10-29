@@ -1,0 +1,186 @@
+:host {
+  display: block;
+  padding: 32px 16px;
+}
+
+main {
+  max-width: 1100px;
+  margin: auto;
+  padding: 32px;
+  background: white;
+  border: 1px solid #dce3ed;
+  border-radius: 16px;
+}
+
+h1 {
+  margin-top: 0;
+  font-size: 2rem;
+}
+
+h2,
+h3 {
+  color: #173a63;
+}
+
+p {
+  overflow-wrap: anywhere;
+}
+
+label {
+  display: block;
+  margin: 24px 0 8px;
+  font-weight: 700;
+}
+
+input[type='file'] {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  border: 1px dashed #64748b;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+input::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 12px;
+  border: 1px solid #64748b;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+}
+
+button {
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 8px;
+  background: #1d4ed8;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #1e40af;
+}
+
+button:disabled {
+  background: #64748b;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 4px;
+}
+
+[role='alert'] {
+  padding: 12px 16px;
+  border-left: 4px solid #b91c1c;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+section {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #dce3ed;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+dl > div {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #dce3ed;
+  border-radius: 8px;
+}
+
+dt {
+  margin-bottom: 8px;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+dd {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+[data-status] {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+[data-status='found'] {
+  color: #166534;
+}
+
+[data-status='doubtful'] {
+  color: #92400e;
+  font-weight: 700;
+}
+
+[data-status='missing'] {
+  color: #475569;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+caption {
+  padding: 12px 0;
+  text-align: left;
+  color: #475569;
+}
+
+th,
+td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #dce3ed;
+  vertical-align: top;
+}
+
+th {
+  background: #eff4fb;
+  color: #173a63;
+}
+
+tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+@media (max-width: 600px) {
+  :host {
+    padding: 12px;
+  }
+
+  main {
+    padding: 20px 16px;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+  }
+
+  dl {
+    grid-template-columns: 1fr;
+  }
+}
