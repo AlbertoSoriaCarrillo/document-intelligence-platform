@@ -1,9 +1,13 @@
 import re
-from decimal import Decimal, InvalidOperation
 
+from decimal import Decimal, InvalidOperation
 from app.models.document import ExtractedField, FieldStatus
 from app.extraction.ocr_layout import OcrWord
-
+from app.models.document import ExtractedLineItems
+from app.extraction.invoice_line_extractor import (
+    extract_invoice_lines,
+    extract_invoice_lines_from_ocr,
+)
 
 DATE_PATTERN = r"\b\d{2}(?:[./-])\d{2}(?:[./-])\d{4}\b"
 
@@ -189,7 +193,7 @@ def _party_fields_from_layout(
 def extract_invoice_fields(
     text: str,
     ocr_regions: list[list[OcrWord]] | None = None,
-) -> dict[str, ExtractedField]:
+) -> dict[str, ExtractedField | ExtractedLineItems]:
     normalized = re.sub(r"\s+", " ", text).strip()
 
     invoice_number_match = re.search(
@@ -304,8 +308,14 @@ def extract_invoice_fields(
             if detected_tax_ids
             else _missing()
         ),
-        "line_items": _missing(),
+        "line_items": (
+            extract_invoice_lines_from_ocr(ocr_regions)
+            if ocr_regions
+            else extract_invoice_lines(text)
+        ),
     }
+    
     if ocr_regions:
         fields.update(_party_fields_from_layout(ocr_regions))
+
     return fields

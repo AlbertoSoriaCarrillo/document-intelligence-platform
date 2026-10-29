@@ -34,6 +34,18 @@ class ExtractedField(BaseModel):
     status: FieldStatus
 
 
+class InvoiceLineItem(BaseModel):
+    description: ExtractedField
+    quantity: ExtractedField
+    unit_price: ExtractedField
+    amount: ExtractedField
+
+
+class ExtractedLineItems(BaseModel):
+    value: list[InvoiceLineItem] | None
+    status: FieldStatus
+
+
 class DocumentInspectionResponse(BaseModel):
     filename: str
     content_type: str
@@ -41,6 +53,6 @@ class DocumentInspectionResponse(BaseModel):
     character_count: int
     extraction_method: str
     classification: DocumentClassification
-    extracted_fields: dict[str, ExtractedField]
+    extracted_fields: dict[str, ExtractedField | ExtractedLineItems]
     text_preview: str
     warnings: list[str]
