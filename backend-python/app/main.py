@@ -5,7 +5,7 @@ from app.api.document_routes import router as document_router
 
 app = FastAPI(
     title="Document Intelligence API",
-    description="API for document classification and structured data extraction.",
+    description="Text-layer invoice inspection for the Lumenia sample structure.",
     version="0.1.0",
 )
 

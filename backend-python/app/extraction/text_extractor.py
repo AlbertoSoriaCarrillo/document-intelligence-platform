@@ -1,22 +1,10 @@
 from dataclasses import dataclass
-from io import BytesIO
-from pathlib import Path
-from PIL import Image, ImageOps
-from app.core.settings import BACKEND_DIR, get_settings
-from dataclasses import dataclass, field
-from app.extraction.ocr_layout import (
-    OcrWord,
-    extract_positioned_words,
-)
 
-import fitz
-import pytesseract
-import os
-import shutil
+import pymupdf
 
 
 class DocumentProcessingError(Exception):
-    """Raised when a document cannot be processed."""
+    """The supplied document cannot be inspected."""
 
 
 @dataclass
@@ -24,236 +12,23 @@ class TextExtractionResult:
     text: str
     method: str
     warnings: list[str]
-    ocr_regions: list[list[OcrWord]] = field(default_factory=list)
 
-def _configure_tesseract() -> str:
-    settings = get_settings()
-
-    executable = (
-        settings.tesseract_cmd
-        or shutil.which("tesseract")
-    )
-
-    if not executable:
-        raise DocumentProcessingError(
-            "Tesseract OCR is not installed or is not available in PATH."
-        )
-
-    pytesseract.pytesseract.tesseract_cmd = executable
-
-    if settings.tessdata_dir:
-        tessdata_path = Path(settings.tessdata_dir)
-
-        if not tessdata_path.is_absolute():
-            tessdata_path = BACKEND_DIR / tessdata_path
-
-        tessdata_path = tessdata_path.resolve()
-
-        if not tessdata_path.exists():
-            raise DocumentProcessingError(
-                "The configured Tesseract language directory does not exist."
-            )
-
-        os.environ["TESSDATA_PREFIX"] = (
-            str(tessdata_path) + os.sep
-        )
-
-    return settings.ocr_language
-
-def _ocr_image(
-    image: Image.Image,
-    ocr_regions: list[list[OcrWord]] | None = None,
-) -> str:
-    language = _configure_tesseract()
-
-    prepared_image = ImageOps.autocontrast(
-        ImageOps.grayscale(image)
-    )
-
-    # Ampliar imágenes pequeñas conservando proporciones.
-    if prepared_image.width < 1600:
-        scale = 1600 / prepared_image.width
-
-        prepared_image = prepared_image.resize(
-            (
-                int(prepared_image.width * scale),
-                int(prepared_image.height * scale),
-            ),
-            Image.Resampling.LANCZOS,
-        )
-
-    try:
-        data = pytesseract.image_to_data(
-            prepared_image,
-            lang=language,
-            config="--oem 1 --psm 11",
-            output_type=pytesseract.Output.DICT,
-        )
-
-        if ocr_regions is not None:
-            words = extract_positioned_words(
-                data,
-                prepared_image.width,
-                prepared_image.height,
-            )
-            ocr_regions.append(words)
-
-        accepted_tokens: list[str] = []
-
-        for token, raw_confidence in zip(
-            data["text"],
-            data["conf"],
-            strict=True,
-        ):
-            token = token.strip()
-            confidence = float(raw_confidence)
-
-            if not token or confidence < 35:
-                continue
-
-            alphanumeric_count = sum(
-                character.isalnum()
-                for character in token
-            )
-
-            if alphanumeric_count < max(1, len(token) // 3):
-                continue
-
-            accepted_tokens.append(token)
-
-        return " ".join(accepted_tokens)
-
-    except pytesseract.TesseractError as exc:
-        raise DocumentProcessingError(
-            f"The OCR engine failed with exit code {exc.status}."
-        ) from exc
-
-def _ocr_embedded_images(
-    document: fitz.Document,
-    page: fitz.Page,
-    ocr_regions: list[list[OcrWord]] | None = None,
-) -> str:
-    extracted_parts: list[str] = []
-
-    for image_info in page.get_images(full=True):
-        xref = image_info[0]
-        width = image_info[2]
-        height = image_info[3]
-
-        # Ignorar iconos o imágenes demasiado pequeñas.
-        if width * height < 150_000:
-            continue
-
-        image_data = document.extract_image(xref)
-
-        with Image.open(BytesIO(image_data["image"])) as image:
-            text = _ocr_image(image, ocr_regions)
-
-        if text:
-            extracted_parts.append(text)
-
-    return "\n".join(extracted_parts)
 
 def extract_text_from_pdf(content: bytes) -> TextExtractionResult:
+    if not content.startswith(b"%PDF-"):
+        raise DocumentProcessingError("The file content is not a PDF.")
     try:
-        native_parts: list[str] = []
-        ocr_parts: list[str] = []
-        ocr_regions: list[list[OcrWord]] = []
-
-        with fitz.open(stream=content, filetype="pdf") as document:
-            for page in document:
-                native_text = page.get_text("text").strip()
-
-                if native_text:
-                    native_parts.append(native_text)
-                    continue
-
-                embedded_text = _ocr_embedded_images(document, page, ocr_regions)
-
-                if embedded_text:
-                    ocr_parts.append(embedded_text)
-                    continue
-
-                pixmap = page.get_pixmap(
-                    # matrix=fitz.Matrix(2.5, 2.5), init point size for better OCR accuracy
-                    matrix=fitz.Matrix(4.0, 4.0),
-                    alpha=False,
-                )
-
-                image = Image.open(
-                    BytesIO(pixmap.tobytes("png"))
-                )
-
-                ocr_text = _ocr_image(image, ocr_regions)
-
-                if ocr_text:
-                    ocr_parts.append(ocr_text)
-
-        combined_parts = native_parts + ocr_parts
-        text = "\n\n".join(combined_parts).strip()
-
-        if native_parts and ocr_parts:
-            method = "hybrid"
-        elif ocr_parts:
-            method = "ocr"
-        elif native_parts:
-            method = "native_text"
-        else:
-            method = "none"
-
-        warnings: list[str] = []
-
-        if ocr_parts:
-            warnings.append(
-                "OCR was used because one or more pages had no text layer."
-            )
-
-        if not text:
-            warnings.append(
-                "No readable text could be extracted from the document."
-            )
-
-        return TextExtractionResult(
-            text=text,
-            method=method,
-            warnings=warnings,
-            ocr_regions=ocr_regions,
-        )
-
+        with pymupdf.open(stream=content, filetype="pdf") as document:
+            if document.needs_pass:
+                raise DocumentProcessingError("The PDF is password protected and cannot be read.")
+            if not document.page_count:
+                raise DocumentProcessingError("The PDF contains no pages.")
+            parts = [page.get_text("text").strip() for page in document]
+            if any(not part for part in parts):
+                raise DocumentProcessingError("Every PDF page must have a readable text layer; scanned PDFs are unsupported.")
+            warnings = ["The PDF was repaired while reading; verify the extracted values."] if document.is_repaired else []
+            return TextExtractionResult("\n\n".join(parts), "native_text", warnings)
     except DocumentProcessingError:
         raise
     except Exception as exc:
-        raise DocumentProcessingError(
-            "The PDF document could not be processed."
-        ) from exc
-
-def extract_text_from_image(
-    content: bytes,
-) -> TextExtractionResult:
-    try:
-
-        ocr_regions: list[list[OcrWord]] = []
-
-        with Image.open(BytesIO(content)) as image:
-            text = _ocr_image(image, ocr_regions)
-
-        warnings = ["OCR was used to process the image."]
-
-        if not text:
-            warnings.append(
-                "No readable text could be extracted from the image."
-            )
-
-        return TextExtractionResult(
-            text=text,
-            method="ocr" if text else "none",
-            warnings=warnings,
-            ocr_regions=ocr_regions,
-        )
-
-    except DocumentProcessingError:
-        raise
-    except Exception as exc:
-        raise DocumentProcessingError(
-            "The image could not be processed."
-        ) from exc
+        raise DocumentProcessingError("The PDF is corrupt or cannot be read.") from exc

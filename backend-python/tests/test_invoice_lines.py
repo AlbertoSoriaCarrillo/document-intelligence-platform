@@ -2,6 +2,25 @@ from app.extraction.invoice_line_extractor import extract_invoice_lines
 from app.models.document import FieldStatus
 
 
+def test_empty_table_is_missing():
+    result = extract_invoice_lines("Concepto\nCantidad\nPrecio / cálculo\nImporte\nBase imponible\n0,00 EUR")
+    assert result.value is None
+    assert result.status == FieldStatus.MISSING
+
+
+def test_ambiguous_amount_propagates_to_lines():
+    result = extract_invoice_lines("Concepto\nCantidad\nPrecio / cálculo\nImporte\nServicio\n-\n5,00 EUR\nilegible")
+    assert result.value[0].amount.status == FieldStatus.DOUBTFUL
+    assert result.value[0].quantity.status == FieldStatus.MISSING
+    assert result.status == FieldStatus.DOUBTFUL
+
+
+def test_missing_amount_preserves_line():
+    result = extract_invoice_lines("Concepto\nCantidad\nPrecio / cálculo\nImporte\nServicio\n1 mes\n5,00 EUR\n-")
+    assert result.value[0].amount.status == FieldStatus.MISSING
+    assert result.status == FieldStatus.DOUBTFUL
+
+
 def test_extracts_lines_without_including_totals():
     text = """
 Concepto
