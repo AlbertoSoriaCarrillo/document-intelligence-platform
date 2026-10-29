@@ -3,6 +3,11 @@ from io import BytesIO
 from pathlib import Path
 from PIL import Image, ImageOps
 from app.core.settings import BACKEND_DIR, get_settings
+from dataclasses import dataclass, field
+from app.extraction.ocr_layout import (
+    OcrWord,
+    extract_positioned_words,
+)
 
 import fitz
 import pytesseract
@@ -19,6 +24,7 @@ class TextExtractionResult:
     text: str
     method: str
     warnings: list[str]
+    ocr_regions: list[list[OcrWord]] = field(default_factory=list)
 
 def _configure_tesseract() -> str:
     settings = get_settings()
@@ -54,7 +60,10 @@ def _configure_tesseract() -> str:
 
     return settings.ocr_language
 
-def _ocr_image(image: Image.Image) -> str:
+def _ocr_image(
+    image: Image.Image,
+    ocr_regions: list[list[OcrWord]] | None = None,
+) -> str:
     language = _configure_tesseract()
 
     prepared_image = ImageOps.autocontrast(
@@ -80,6 +89,14 @@ def _ocr_image(image: Image.Image) -> str:
             config="--oem 1 --psm 11",
             output_type=pytesseract.Output.DICT,
         )
+
+        if ocr_regions is not None:
+            words = extract_positioned_words(
+                data,
+                prepared_image.width,
+                prepared_image.height,
+            )
+            ocr_regions.append(words)
 
         accepted_tokens: list[str] = []
 
@@ -114,6 +131,7 @@ def _ocr_image(image: Image.Image) -> str:
 def _ocr_embedded_images(
     document: fitz.Document,
     page: fitz.Page,
+    ocr_regions: list[list[OcrWord]] | None = None,
 ) -> str:
     extracted_parts: list[str] = []
 
@@ -129,7 +147,7 @@ def _ocr_embedded_images(
         image_data = document.extract_image(xref)
 
         with Image.open(BytesIO(image_data["image"])) as image:
-            text = _ocr_image(image)
+            text = _ocr_image(image, ocr_regions)
 
         if text:
             extracted_parts.append(text)
@@ -140,6 +158,7 @@ def extract_text_from_pdf(content: bytes) -> TextExtractionResult:
     try:
         native_parts: list[str] = []
         ocr_parts: list[str] = []
+        ocr_regions: list[list[OcrWord]] = []
 
         with fitz.open(stream=content, filetype="pdf") as document:
             for page in document:
@@ -149,7 +168,7 @@ def extract_text_from_pdf(content: bytes) -> TextExtractionResult:
                     native_parts.append(native_text)
                     continue
 
-                embedded_text = _ocr_embedded_images(document, page)
+                embedded_text = _ocr_embedded_images(document, page, ocr_regions)
 
                 if embedded_text:
                     ocr_parts.append(embedded_text)
@@ -165,7 +184,7 @@ def extract_text_from_pdf(content: bytes) -> TextExtractionResult:
                     BytesIO(pixmap.tobytes("png"))
                 )
 
-                ocr_text = _ocr_image(image)
+                ocr_text = _ocr_image(image, ocr_regions)
 
                 if ocr_text:
                     ocr_parts.append(ocr_text)
@@ -198,6 +217,7 @@ def extract_text_from_pdf(content: bytes) -> TextExtractionResult:
             text=text,
             method=method,
             warnings=warnings,
+            ocr_regions=ocr_regions,
         )
 
     except DocumentProcessingError:
@@ -211,8 +231,11 @@ def extract_text_from_image(
     content: bytes,
 ) -> TextExtractionResult:
     try:
+
+        ocr_regions: list[list[OcrWord]] = []
+
         with Image.open(BytesIO(content)) as image:
-            text = _ocr_image(image)
+            text = _ocr_image(image, ocr_regions)
 
         warnings = ["OCR was used to process the image."]
 
@@ -225,6 +248,7 @@ def extract_text_from_image(
             text=text,
             method="ocr" if text else "none",
             warnings=warnings,
+            ocr_regions=ocr_regions,
         )
 
     except DocumentProcessingError:

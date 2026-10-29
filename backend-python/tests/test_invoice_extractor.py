@@ -22,3 +22,17 @@ def test_extracts_invoice_fields() -> None:
     assert result["tax"].value == "21.00"
     assert result["total"].value == "121.00"
     assert result["currency"].value == "EUR"
+
+
+def test_recovers_ocr_company_tax_ids_without_assigning_roles() -> None:
+    result = extract_invoice_fields(
+        "Factura F-2026-001 "
+        "CIF BO0000000 NIF BO0000001"
+    )
+
+    assert result["detected_tax_ids"].value == (
+        "B00000000, B00000001"
+    )
+    assert result["detected_tax_ids"].status == "doubtful"
+    assert result["issuer_tax_id"].value is None
+    assert result["recipient_tax_id"].value is None

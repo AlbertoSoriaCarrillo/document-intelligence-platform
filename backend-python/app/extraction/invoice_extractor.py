@@ -74,6 +74,38 @@ def _find_amount(
     )
 
 
+def _find_corrected_company_tax_ids(text: str) -> list[str]:
+    """Recupera candidatos de empresa junto a CIF/NIF."""
+    matches = re.finditer(
+        r"\b(?:CIF|NIF)\s*[:.-]?\s*"
+        r"([ABCDEFGHJNPQRSUVW])([0-9O]{7})([0-9A-JO])"
+        r"(?![A-Z0-9])",
+        text,
+        re.IGNORECASE,
+    )
+
+    candidates: list[str] = []
+
+    for match in matches:
+        prefix, digits, control = (
+            part.upper() for part in match.groups()
+        )
+
+        if "O" not in digits and control != "O":
+            continue
+
+        candidate = (
+            prefix
+            + digits.replace("O", "0")
+            + ("0" if control == "O" else control)
+        )
+
+        if candidate not in candidates:
+            candidates.append(candidate)
+
+    return candidates
+
+
 def extract_invoice_fields(
     text: str,
 ) -> dict[str, ExtractedField]:
@@ -119,6 +151,10 @@ def extract_invoice_fields(
             )
         )
     )
+
+    for candidate in _find_corrected_company_tax_ids(normalized):
+        if candidate not in detected_tax_ids:
+            detected_tax_ids.append(candidate)
 
     subtotal = _find_amount(
         normalized,
