@@ -64,6 +64,7 @@ async def inspect_document(
     extracted_fields = extract_structured_fields(
         classification.document_type,
         extraction.text,
+        ocr_regions=extraction.ocr_regions,
     )
 
     return DocumentInspectionResponse(
