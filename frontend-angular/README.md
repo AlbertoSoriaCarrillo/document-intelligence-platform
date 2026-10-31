@@ -1,59 +1,69 @@
-# DocumentIntelligenceUi
+# Frontend de extracción de facturas
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.5.
+Interfaz Angular de una sola pantalla para subir una factura PDF compatible con
+la muestra Lumenia y consultar los campos y conceptos devueltos por el backend.
 
-## Development server
+## Instalación y arranque
 
-To start a local development server, run:
+Se utiliza Node.js 24 y npm. Desde esta carpeta (`frontend-angular`):
 
-```bash
-ng serve
+```powershell
+npm ci
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Abrir http://localhost:4200. Para procesar documentos debe estar arrancado el
+backend; consulta las instrucciones del [README principal](../README.md).
 
-## Code scaffolding
+## Probar el flujo
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+1. Seleccionar [la factura de muestra](../docs/factura_luz_simulada_lumenia.pdf).
+2. Pulsar **Extraer datos**.
+3. Revisar los campos y los cinco conceptos, incluidos sus estados.
 
-```bash
-ng generate component component-name
+La interfaz comprueba extensión PDF, archivo no vacío y un máximo de 10 MiB.
+El backend valida el contenido y la estructura. No se admiten imágenes, PDF
+escaneados ni plantillas arbitrarias.
+
+Los estados se muestran como **Encontrado**, **Revisar** y **No encontrado**.
+Encontrado significa extraído, no validado fiscalmente. Los valores ausentes
+se muestran como un guion. Los errores permiten volver a intentar la operación.
+
+## Configuración y textos
+
+- `src/environments/environment.development.ts`: dirección `apiUrl` para desarrollo.
+- `src/environments/environment.ts`: dirección `apiUrl` para producción.
+- `src/app/resources/ui-texts.ts`: textos, etiquetas y errores locales de la interfaz.
+
+Ambos entornos apuntan inicialmente a `http://localhost:8000`. Estos valores y
+los textos se incorporan al compilar. Si cambia el origen del frontend, debe
+ajustarse también CORS en el backend. Los errores y avisos recibidos de la API
+se muestran con el texto que envía el servidor. La aplicación tiene un único
+idioma; centralizar los textos no incorpora traducción automática.
+
+## Organización
+
+- `src/app/app.ts`: selección de archivo, estado de la pantalla y envío de peticiones.
+- `src/app/app.html` y `app.scss`: presentación y estilos de la pantalla.
+- `src/app/services/document.service.ts`: comunicación HTTP con la API.
+- `src/app/models/document.model.ts`: contrato TypeScript de la respuesta.
+- `src/app/resources/ui-texts.ts`: textos visibles.
+- `src/app/app.spec.ts`: pruebas del componente con respuestas HTTP simuladas.
+
+No hay navegación entre pantallas ni configuración de router.
+
+## Pruebas y compilación
+
+Desde esta carpeta:
+
+```powershell
+npm test -- --watch=false
+npm run build
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Las pruebas cubren selección y validación de archivos, presentación de resultados
+y manejo de errores del backend y de conexión. No hay pruebas E2E configuradas;
+el flujo con la API real se comprueba manualmente con la muestra.
 
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+La compilación genera la aplicación en `dist/document-intelligence-ui/`.
+Compilar no arranca ni publica el backend.

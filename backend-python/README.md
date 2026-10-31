@@ -1,24 +1,39 @@
 # Backend de facturas
 
-Prototipo limitado a PDF con capa de texto y estructura de la muestra Lumenia de
-`docs/`. No implica que la aplicación web esté terminada. No requiere OCR,
-Tesseract, modelos de idiomas ni variables de entorno. Los `.env` privados no se
-leen y pueden conservarse.
+API FastAPI limitada a PDF con capa de texto y estructura de la
+[factura ficticia Lumenia](../docs/factura_luz_simulada_lumenia.pdf).
+La lectura y extracción se realizan localmente con PyMuPDF y reglas explícitas.
 
-## Instalación y ejecución (PowerShell, desde la raíz)
+## Instalación y ejecución
 
-Python 3.11 o superior. Crear un entorno nuevo si se desea probar de forma aislada:
+Se utiliza Python 3.13. Desde la raíz del repositorio, en PowerShell:
 
 ```powershell
-python -m venv temp/backend-env
-temp/backend-env/Scripts/python.exe -m pip install -r requirements.txt
-temp/backend-env/Scripts/python.exe -m uvicorn app.main:app --app-dir backend-python
-temp/backend-env/Scripts/python.exe -m pytest
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend-python --reload --port 8000
 ```
 
-`backend-python/requirements.txt` es la única lista de dependencias; el archivo de
-la raíz la referencia. Incluye pytest y httpx para las pruebas. PyMuPDF se fija en
-1.26.7 para evitar las dependencias de layout/LLM incorporadas por la versión 2.0.
+Si ya existe el entorno, no hace falta crearlo de nuevo. La documentación
+interactiva está en http://localhost:8000/docs.
+
+`backend-python/requirements.txt` mantiene las dependencias; el archivo de la raíz
+referencia esa lista. Incluye pytest y httpx para las pruebas. La versión declarada
+de PyMuPDF es 1.26.7. No se requieren OCR, Tesseract ni servicios externos de IA.
+
+## Configuración y organización
+
+- `app/main.py`: creación de la aplicación, CORS y comprobación de salud.
+- `app/api/`: recepción de archivos y respuestas HTTP.
+- `app/core/config.py`: límite de tamaño del archivo.
+- `app/core/messages.py`: carga y consulta de mensajes.
+- `app/resources/messages.json`: mensajes de error y avisos; reiniciar el backend tras modificarlos.
+- `app/extraction/`: lectura del PDF, comprobación de estructura y extracción de campos y conceptos.
+- `app/models/`: modelos Pydantic de la respuesta y estados de extracción.
+- `tests/`: pruebas de los extractores, endpoints y esquema de la API.
+
+Los mensajes JSON deben conservar las claves utilizadas por el código. Se cargan
+una vez por proceso. La configuración actual no lee archivos `.env`.
 
 ## API y respuesta
 
@@ -32,7 +47,7 @@ corrupto, protegido con contraseña, página sin texto o estructura incompatible
 
 La respuesta conserva `filename`, `content_type` (PDF validado), `size`,
 `character_count`, `extraction_method` (`native_text`), `text_preview`, `warnings`
-y `extracted_fields`. Ya no contiene `classification` ni `detected_tax_ids`.
+y `extracted_fields`.
 
 Campos: `invoice_number`, `issue_date`, `issuer_tax_id`, `recipient_tax_id`,
 `subtotal` (base imponible), `tax` (importe IVA), `total`, `currency`, `line_items`.
@@ -54,6 +69,12 @@ por coordenadas ni filas cuyo texto ya no permita identificar cuatro celdas;
 una tabla incompleta se marca dudosa. No admite imágenes, escaneos ni otros diseños.
 No calcula valores ausentes ni valida sumas, controles fiscales o autenticidad.
 
-Las pruebas cubren la muestra real (cinco conceptos y totales), valores alternativos,
+Desde la raíz del repositorio:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -v
+```
+
+Las pruebas cubren la muestra ficticia (cinco conceptos y totales), valores alternativos,
 ausencias, candidatos ambiguos, separación de partes, falsos números de factura,
 errores de archivo, límite de tamaño, salud y CORS.
