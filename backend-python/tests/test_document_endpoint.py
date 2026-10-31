@@ -75,18 +75,20 @@ def test_other_values_and_incomplete_compatible_invoice():
 
 def test_false_positive_and_ambiguous_fields():
     fields = extract_invoice_fields("Factura Fecha de emisi\u00f3n: 28/10/2026 Emisor CIF Receptor NIF B12345678")
-    assert fields["invoice_number"].status == "missing"
-    assert fields["issuer_tax_id"].status == "missing"
-    assert fields["recipient_tax_id"].value == "B12345678"
+    assert fields.invoice_number.status == "missing"
+    assert fields.issuer_tax_id.status == "missing"
+    assert fields.recipient_tax_id.value == "B12345678"
     fields = extract_invoice_fields("Factura n\u00famero: A-123\nFactura n\u00famero: B-456\nEmisor CIF B12345678 CIF B87654321\nReceptor")
-    assert fields["invoice_number"].status == "doubtful"
-    assert fields["issuer_tax_id"].status == "doubtful"
+    assert fields.invoice_number.status == "doubtful"
+    assert fields.issuer_tax_id.status == "doubtful"
 
 
 @pytest.mark.parametrize("content,message", [
-    (b"not a pdf", "not a PDF"), (b"%PDF-1.7\ncorrupt", "corrupt"),
-    (pdf(password="secret"), "password protected"), (pdf(), "text layer"),
-    (pdf("Unrelated text document"), "Unsupported invoice structure"),
+    (b"not a pdf", "no es un PDF"),
+    (b"%PDF-1.7\ncorrupt", "está dañado"),
+    (pdf(password="secret"), "protegido con contraseña"),
+    (pdf(), "capa de texto legible"),
+    (pdf("Unrelated text document"), "estructura esperada"),
 ])
 def test_invalid_documents(content, message):
     response = inspect(content, "invoice.pdf", "application/pdf")

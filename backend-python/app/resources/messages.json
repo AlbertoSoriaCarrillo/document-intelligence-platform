@@ -1,0 +1,11 @@
+{
+  "unsupported_structure": "La factura no tiene la estructura esperada.",
+  "empty_pdf": "El PDF no contiene páginas.",
+  "not_pdf": "El contenido del archivo no es un PDF.",
+  "invalid_pdf": "El PDF no es válido o está dañado.",
+  "protected_pdf": "El PDF está protegido con contraseña y no se puede leer.",
+  "scanned_pdf": "Cada página de PDF debe tener una capa de texto legible; los PDFs escaneados no son compatibles.",
+  "repaired_pdf": "El PDF se reparó mientras se leía; verifica los valores extraídos.",
+  "file_empty": "El archivo subido está vacío.",
+  "file_too_large": "El tamaño máximo permitido del archivo es de 10 MB."
+}

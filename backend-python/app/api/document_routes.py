@@ -1,9 +1,10 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from app.core.config import MAX_UPLOAD_SIZE
-from app.extraction.text_extractor import DocumentProcessingError, extract_text_from_pdf
+from app.core.messages import get_message
+from app.extraction.errors import DocumentProcessingError
+from app.extraction.text_extractor import extract_text_from_pdf
 from app.extraction.invoice_extractor import ensure_compatible_invoice, extract_invoice_fields
 from app.models.document import DocumentInspectionResponse
-
 
 router = APIRouter(
     prefix="/api/documents",
@@ -18,18 +19,24 @@ router = APIRouter(
 async def inspect_document(
     file: UploadFile = File(...),
 ) -> DocumentInspectionResponse:
+    """Recibe el archivo y coordina su validación, lectura y extracción.
+
+    Responde 400 si está vacío, 413 si excede el tamaño y 422 si no puede
+    procesarse. La interpretación del documento permanece en los extractores.
+    """
+    # Un byte adicional detecta el exceso sin cargar aquí el archivo completo.
     content = await file.read(MAX_UPLOAD_SIZE + 1)
 
     if not content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The uploaded file is empty.",
+            detail=get_message("file_empty"),
         )
 
     if len(content) > MAX_UPLOAD_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail="The maximum allowed file size is 10 MB.",
+            detail=get_message("file_too_large"),
         )
 
     try:
@@ -45,6 +52,7 @@ async def inspect_document(
 
     return DocumentInspectionResponse(
         filename=file.filename or "unnamed-document",
+        # Refleja el contenido validado, no el MIME declarado por el navegador.
         content_type="application/pdf",
         size=len(content),
         character_count=len(extraction.text),
