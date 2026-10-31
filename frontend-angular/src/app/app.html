@@ -1,12 +1,9 @@
 <main>
-  <h1>Extracción de facturas</h1>
+  <h1>{{ texts.title }}</h1>
 
-  <p>
-    Selecciona una factura con la estructura del ejemplo Lumenia.
-    Debe ser un PDF con texto, no una imagen escaneada.
-  </p>
+  <p>{{ texts.introduction }}</p>
 
-  <label for="invoice-file">Factura en PDF</label>
+  <label for="invoice-file">{{ texts.upload.label }}</label>
 
   <input
     id="invoice-file"
@@ -17,10 +14,10 @@
     (change)="selectFile($event)"
   />
 
-  <p id="file-help">Tamaño máximo: 10 MB.</p>
+  <p id="file-help">{{ texts.upload.help }}</p>
 
   @if (selectedFile(); as file) {
-    <p>Archivo seleccionado: {{ file.name }}</p>
+    <p>{{ texts.upload.selectedFile }} {{ file.name }}</p>
   }
 
   <button
@@ -28,14 +25,14 @@
     [disabled]="!selectedFile() || processing()"
     (click)="processDocument()"
   >
-    {{ processing() ? 'Procesando…' : 'Extraer datos' }}
+    {{ processing() ? texts.upload.processing : texts.upload.submit }}
   </button>
 
   <p role="status">
     @if (processing()) {
-      Leyendo la factura. Espera un momento.
+      {{ texts.processing.reading }}
     } @else if (result()) {
-      Procesamiento completado. Revisa los datos extraídos.
+      {{ texts.processing.completed }}
     }
   </p>
 
@@ -45,26 +42,23 @@
 
   @if (result(); as document) {
     <section aria-labelledby="result-title">
-      <h2 id="result-title">Resultado</h2>
-      <p>Archivo: {{ document.filename }}</p>
+      <h2 id="result-title">{{ texts.result.title }}</h2>
+      <p>{{ texts.result.filename }} {{ document.filename }}</p>
 
-      <p>
-        “Encontrado” indica que el dato se ha extraído.
-        Comprueba los valores con la factura original.
-      </p>
+      <p>{{ texts.result.guidance }}</p>
 
       @for (warning of document.warnings; track $index) {
         <p>{{ warning }}</p>
       }
 
-      <h3>Datos de la factura</h3>
+      <h3>{{ texts.result.invoiceData }}</h3>
 
       <dl>
         @for (entry of fieldLabels; track entry.key) {
           <div>
             <dt>{{ entry.label }}</dt>
             <dd>
-              {{ document.extracted_fields[entry.key].value ?? '—' }}
+              {{ document.extracted_fields[entry.key].value ?? texts.missingValue }}
               <span
                 [attr.data-status]="document.extracted_fields[entry.key].status"
               >
@@ -75,10 +69,10 @@
         }
       </dl>
 
-      <h3>Conceptos</h3>
+      <h3>{{ texts.lineItems.title }}</h3>
 
       <p>
-        Estado:
+        {{ texts.lineItems.status }}
         {{ statusLabel(document.extracted_fields.line_items.status) }}
       </p>
 
@@ -87,14 +81,15 @@
           <div class="table-container">
             <table>
               <caption>
-                Conceptos extraídos de la factura
+                {{ texts.lineItems.caption }}
               </caption>
+
               <thead>
                 <tr>
-                  <th scope="col">Descripción</th>
-                  <th scope="col">Cantidad</th>
-                  <th scope="col">Precio unitario</th>
-                  <th scope="col">Importe</th>
+                  <th scope="col">{{ texts.lineItems.columns.description }}</th>
+                  <th scope="col">{{ texts.lineItems.columns.quantity }}</th>
+                  <th scope="col">{{ texts.lineItems.columns.unitPrice }}</th>
+                  <th scope="col">{{ texts.lineItems.columns.amount }}</th>
                 </tr>
               </thead>
 
@@ -111,7 +106,7 @@
                       track $index
                     ) {
                       <td>
-                        <div>{{ field.value ?? '—' }}</div>
+                        <div>{{ field.value ?? texts.missingValue }}</div>
                         <small [attr.data-status]="field.status">
                           {{ statusLabel(field.status) }}
                         </small>
@@ -123,10 +118,10 @@
             </table>
           </div>
         } @else {
-          <p>No se encontraron conceptos.</p>
+          <p>{{ texts.lineItems.empty }}</p>
         }
       } @else {
-        <p>No se pudieron extraer los conceptos.</p>
+        <p>{{ texts.lineItems.unavailable }}</p>
       }
     </section>
   }
