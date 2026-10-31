@@ -173,3 +173,13 @@ Durante el desarrollo se exploró un alcance mayor y se redujo para priorizar el
 La solución depende del orden de lectura y de los encabezados de la muestra. No reconstruye tablas arbitrarias ni garantiza interpretar otras plantillas. No valida autenticidad, dígitos de control fiscales ni coherencia aritmética de los importes.
 
 Con más tiempo, priorizaría pruebas con más variantes de la estructura admitida, validaciones aritméticas y una mejor representación de unidades y cálculos. Para producción también revisaría los límites de procesamiento, concurrencia, observabilidad y necesidades de control de acceso.
+
+## Uso de IA durante el desarrollo
+
+Se utilizaron ChatGPT y Codex como apoyo para analizar los requisitos, proponer la estructura del proyecto, generar y revisar partes del código, preparar pruebas y resolver errores. También se emplearon para explicar conceptos de Python y Angular, crear documentos ficticios de prueba y revisar la documentación. Codex realizó ajustes concretos de refactorización y limpieza del backend y del frontend.
+
+Las decisiones finales sobre el alcance funcional y el enfoque técnico fueron del autor del proyecto. La IA aportó recomendaciones y realizó cambios de implementación dentro de las tareas autorizadas; sus propuestas se revisaron y adaptaron al alcance de la prueba. La responsabilidad de aceptar los cambios y de la solución entregada corresponde al autor.
+
+El desarrollo fue incremental y se comprobó mediante tests y pruebas manuales. Se descartaron funcionalidades adicionales para centrar la solución en facturas PDF con la estructura de la muestra Lumenia.
+
+La IA se utilizó como herramienta de desarrollo; no interviene en la extracción de datos durante la ejecución de la aplicación.
