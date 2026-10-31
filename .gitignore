@@ -4,8 +4,8 @@
 !.env.example
 
 # Python
+.venv/
 backend-python/.venv/
-backend-python/resources/tessdata/*.traineddata
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -17,10 +17,6 @@ frontend-angular/node_modules/
 frontend-angular/dist/
 .angular/
 npm-debug.log*
-
-# Java
-backend-java/target/
-*.class
 
 # Runtime files
 uploads/
